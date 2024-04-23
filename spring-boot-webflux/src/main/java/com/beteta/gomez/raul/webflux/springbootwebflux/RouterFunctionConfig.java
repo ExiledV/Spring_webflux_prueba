@@ -21,6 +21,9 @@ public class RouterFunctionConfig {
                 .andRoute(GET("/api/v2/productos/{id}"), handler::ver)
                 .andRoute(POST("/api/v2/productos"), handler::crear)
                 .andRoute(PUT("/api/v2/productos/{id}"), handler::editar)
-                .andRoute(DELETE("/api/v2/productos/{id}"), handler::eliminar);
+                .andRoute(DELETE("/api/v2/productos/{id}"), handler::eliminar)
+                .andRoute(PUT("/api/v2/productos/upload/{id}"), handler::upload)
+                .andRoute(POST("/api/v2/productos/crearConFoto"), handler::crearConFoto);
+                
     }
 }
