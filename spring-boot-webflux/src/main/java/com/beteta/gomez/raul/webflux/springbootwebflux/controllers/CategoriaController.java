@@ -1,6 +1,8 @@
 package com.beteta.gomez.raul.webflux.springbootwebflux.controllers;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -14,10 +16,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.support.WebExchangeBindException;
 
 import com.beteta.gomez.raul.webflux.springbootwebflux.models.documents.Categoria;
 import com.beteta.gomez.raul.webflux.springbootwebflux.services.CategoriaService;
 
+import jakarta.validation.Valid;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -42,15 +46,33 @@ public class CategoriaController {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(c))
                 .defaultIfEmpty(ResponseEntity.notFound().build());
-        
+
     }
 
     @PostMapping
-    public Mono<ResponseEntity<Categoria>> create(@RequestBody Categoria categoria) {
-        return this.categoriaService.save(categoria).map(c -> ResponseEntity.created(URI.create("/api/categorias/".concat(c.getId())))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(c))
-                .defaultIfEmpty(ResponseEntity.badRequest().build());
+    public Mono<ResponseEntity<Map<String, Object>>> create(@Valid @RequestBody Mono<Categoria> monoCategoria) {
+        Map<String, Object> response = new HashMap<String, Object>();
+
+        return monoCategoria.flatMap(categoria -> {
+            response.put("categoria", categoria);
+            return this.categoriaService.save(categoria)
+                    .map(c -> ResponseEntity.created(URI.create("/api/categorias/".concat(c.getId())))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(response))
+                    .defaultIfEmpty(ResponseEntity.badRequest().build());
+        }).onErrorResume(t -> {
+            return Mono.just(t).cast(WebExchangeBindException.class)
+                    .flatMap(e -> Mono.just(e.getFieldErrors()))
+                    .flatMapMany(Flux::fromIterable)
+                    .map(fieldError -> "El campo " + fieldError.getField() + " " + fieldError.getDefaultMessage())
+                    .collectList()
+                    .flatMap(list -> {
+                        response.put("errors", list);
+
+                        return Mono.just(ResponseEntity.badRequest().body(response));
+                    });
+        });
+
     }
 
     @PutMapping("/{id}")
@@ -66,7 +88,7 @@ public class CategoriaController {
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> delete(@PathVariable String id){
+    public Mono<ResponseEntity<Void>> delete(@PathVariable String id) {
         return categoriaService.findById(id).flatMap(p -> {
             return this.categoriaService.delete(p).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
         }).defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));

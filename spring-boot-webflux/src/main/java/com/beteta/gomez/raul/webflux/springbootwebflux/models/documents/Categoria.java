@@ -3,22 +3,25 @@ package com.beteta.gomez.raul.webflux.springbootwebflux.models.documents;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import jakarta.validation.constraints.NotEmpty;
+
 @Document(collection = "categorias")
 public class Categoria {
 
     @Id
     private String id;
 
+    @NotEmpty
     private String nombre;
 
-
-    public Categoria(){}
+    public Categoria() {
+    }
 
     public Categoria(String nombre) {
         this.nombre = nombre;
     }
 
-    //Getters and setters
+    // Getters and setters
     public String getId() {
         return id;
     }
@@ -35,5 +38,4 @@ public class Categoria {
         this.nombre = nombre;
     }
 
-    
 }
