@@ -78,8 +78,7 @@ public class ProductoController {
             });
         }).onErrorResume(t -> {
             return Mono.just(t).cast(WebExchangeBindException.class)
-                    .flatMap(e -> Mono.just(e.getFieldErrors()))
-                    .flatMapMany(Flux::fromIterable)
+                    .flatMapMany(e -> Flux.fromIterable(e.getFieldErrors()))
                     .map(fieldError -> "El campo " + fieldError.getField() + " " + fieldError.getDefaultMessage())
                     .collectList()
                     .flatMap(list -> {
