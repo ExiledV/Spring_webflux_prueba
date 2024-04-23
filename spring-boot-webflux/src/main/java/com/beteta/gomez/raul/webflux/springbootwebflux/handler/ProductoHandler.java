@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.FormFieldPart;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
+import org.springframework.validation.Validator;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -19,6 +22,7 @@ import com.beteta.gomez.raul.webflux.springbootwebflux.models.documents.Categori
 import com.beteta.gomez.raul.webflux.springbootwebflux.models.documents.Producto;
 import com.beteta.gomez.raul.webflux.springbootwebflux.services.ProductoService;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -28,6 +32,9 @@ public class ProductoHandler {
 
     @Value("${config.uploads.path}")
     private String path;
+
+    @Autowired
+    private Validator validator;
 
     public Mono<ServerResponse> listar(ServerRequest request){
         return ServerResponse.ok()
@@ -47,12 +54,24 @@ public class ProductoHandler {
         Mono<Producto> producto = request.bodyToMono(Producto.class);
 
         return producto.flatMap(p -> {
-            if(p.getCreateAt() == null){
-                p.setCreateAt(new Date());
-            }
 
-            return productoService.save(p);
-        }).flatMap(p -> ServerResponse.ok().body(BodyInserters.fromValue(p)));
+            Errors errors = new BeanPropertyBindingResult(p, Producto.class.getName());
+            validator.validate(p, errors);
+
+            if(errors.hasErrors()){
+                return Flux.fromIterable(errors.getFieldErrors())
+                        .map(fieldError -> "El campo " + fieldError.getField() + " " + fieldError.getDefaultMessage())
+                        .collectList()
+                        .flatMap(list -> ServerResponse.badRequest().body(BodyInserters.fromValue(list)));
+            } else {
+                if(p.getCreateAt() == null){
+                    p.setCreateAt(new Date());
+                }
+    
+                return productoService.save(p)
+                    .flatMap(pDb -> ServerResponse.ok().body(BodyInserters.fromValue(pDb)));
+            }
+        });
     }
 
     public Mono<ServerResponse> editar(ServerRequest request){
@@ -104,7 +123,7 @@ public class ProductoHandler {
     }
 
     public Mono<ServerResponse> crearConFoto(ServerRequest request){
-        
+
         Mono<Producto> producto = request.multipartData().map(multipart -> {
             FormFieldPart nombre = (FormFieldPart) multipart.toSingleValueMap().get("nombre");
             FormFieldPart precio = (FormFieldPart) multipart.toSingleValueMap().get("precio");
