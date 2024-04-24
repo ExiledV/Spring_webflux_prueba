@@ -48,4 +48,9 @@ public class ProductoServiceImpl implements ProductoService{
         return this.productoRepository.delete(prod);
     }
 
+    @Override
+    public Mono<Producto> findByNombre(String nombre) {
+        return this.productoRepository.findByNombreIgnoreCase(nombre);
+    }
+
 }

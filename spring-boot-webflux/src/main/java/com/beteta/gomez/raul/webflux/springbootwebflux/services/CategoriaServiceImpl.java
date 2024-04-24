@@ -35,5 +35,11 @@ public class CategoriaServiceImpl implements CategoriaService{
         return this.categoriaRepository.delete(categoria);
     }
 
+    @Override
+    public Mono<Categoria> findByNombre(String nombre) {
+        return this.categoriaRepository.findByNombreIgnoreCase(nombre);
+    }
+
+    
     
 }

@@ -69,7 +69,9 @@ public class ProductoHandler {
                 }
     
                 return productoService.save(p)
-                    .flatMap(pDb -> ServerResponse.ok().body(BodyInserters.fromValue(pDb)));
+                    .flatMap(pDb -> ServerResponse
+                        .created(URI.create("/api/v2/productos/".concat(p.getId())))
+                        .body(BodyInserters.fromValue(pDb)));
             }
         });
     }
@@ -91,7 +93,6 @@ public class ProductoHandler {
                 .body(productoService.save(p), Producto.class))
 
         .switchIfEmpty(ServerResponse.notFound().build());
-         
     }
 
     public Mono<ServerResponse> eliminar(ServerRequest request){
@@ -152,5 +153,15 @@ public class ProductoHandler {
                 .flatMap(p -> ServerResponse.created(URI.create("/api/v2/productos/".concat(p.getId())))
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(productoService.save(p), Producto.class));
+    }
+
+    public Mono<ServerResponse> findByNombre(ServerRequest request){
+        String nombre = request.pathVariable("nombre");
+
+        return this.productoService.findByNombre(nombre)
+                .flatMap(p -> ServerResponse.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(BodyInserters.fromValue(p)))
+                .switchIfEmpty(ServerResponse.notFound().build());
     }
 }

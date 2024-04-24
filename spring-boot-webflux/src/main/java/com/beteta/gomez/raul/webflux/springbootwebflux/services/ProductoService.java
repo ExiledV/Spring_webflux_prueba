@@ -11,7 +11,10 @@ public interface ProductoService {
 
     Mono<Producto> findById(String id);
 
+    Mono<Producto> findByNombre(String nombre);
+
     Mono<Producto> save(Producto prod);
     
     Mono<Void> delete(Producto prod);
+
 }
